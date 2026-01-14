@@ -275,3 +275,67 @@ We then need to run **nc -lk 6969**, **-l** will allow netcat to await for conne
 
 After waiting a few seconds, we can stop the 2 scripts and check for results in nc :
 ![Level10-02](img/Level10-02.png)
+
+# Level 11
+
+We checked the files we were given, and noticed we had a .lua file that seems to be creating a local server, and it expects the client to input a password, which then gets sent to the hash function.
+
+It seems like we may need to do a command injection, so we then use nc to listen to the server.
+
+![Level11-00](img/Level11-00.png)
+
+# Level 12
+
+We looked at the files in our current level directory, we saw that there was a file named "level12.pl" and we checked its content.
+
+We noticed that it was quite similar to the level04, we will need to execute a curl request again with a specefic parameter to inject a command inside the t function.
+
+![Level12-00](img/Level12-00.png)
+
+We can see that the argument 0 that we provide is being capitalized and it ignores any characters after the first space then used inside a command execution.
+
+Since we cannot try to run getflag directly because it will be turned into GETFLAG, we need to find a way to run getflag without the capitalization being an issue.
+
+We know for a fact that special characters such as "/" or "*" will remain unchanged, we exploit this by creating a script that will run getflag and redirect the result in another file, and we name that script with capital letters only.
+
+![Level12-01](img/Level12-01.png)
+
+# Level 13
+
+This time we have a binary, that seems to be comparing our UID to another number.
+
+![Level13-00](img/Level13-00.png)
+
+To understand more about what our UID is being compared to, we run the binary in gdb and we can see that getuid function is being called and then the result of getuid which is stored in eax gets compared to 0x1092 which is 4242.
+
+![Level13-01](img/Level13-01.png)
+
+With gdb you can inspect registries and also modify their current values, so we set a breakpoint at the line where eax gets compared to 4242, and we run set $eax = 4242
+
+![Level13-02](img/Level13-02.png)
+
+Seems to have worked, the token showed up.
+
+# Level 14
+
+As we arrived on level14, we noticed that we were not provided with any files, and using find we saw that there was no file that was created by the user flag14, so we thought we should potentially reverse the getflag binary we have been using the entire time.
+
+![Level14-00](img/Level14-00.png)
+
+We can see that a few major functions are being used here, such as getenv, getuid, ptrace.
+
+![Level14-01](img/Level14-01.png)
+
+Since ptrace will prevent us from trying to run gdb on it, we will need to bypass that protection first by modifying eax again right after ptrace has been called.
+
+We run **b ptrace** in gdb, then **run** then **n** and then we set eax to 1 so we dont get "You should not reverse this".
+
+After bypassing ptrace, we need to find where getuid is being called so we can replace its result by the uid of the user flag14.
+
+To proceed we do : **b getuid** and we then continue and add another breakpoint to the line that compares our uid.
+
+![Level14-02](img/Level14-02.png)
+
+As we can see it tries to compare our uid with all the uid of flag users, so we then run **set $eax = 3014** and then **continue**.
+
+![Level14-03](img/Level14-03.png)
